@@ -289,6 +289,24 @@ test("a single outdoor entity as a string still works", () => {
   assert.equal(ctx.module.exports.analyse(hass, { outdoor: "sensor.terrasse_temperature" }).outdoor.temperature, 18);
 });
 
+test("outdoor_area: the other outdoor areas are still not rooms", () => {
+  const ctx = loadCard();
+  const hass = mkHass({ wohnen: { t: 21 }, terrasse: { t: 18 }, balkon_nord: { t: 10 } });
+  const data = ctx.module.exports.analyse(hass, { outdoor_area: "balkon_nord" });
+  assert.deepEqual(data.rooms.map((r) => r.id), ["wohnen"]);
+  assert.equal(data.outdoor.temperature, 10);
+});
+
+test("areas list: outdoor areas still give outdoor values unless listed", () => {
+  const ctx = loadCard();
+  const hass = mkHass({ wohnen: { t: 21 }, bad: { t: 23 }, terrasse: { t: 18 } });
+  const data = ctx.module.exports.analyse(hass, { areas: ["wohnen"] });
+  assert.deepEqual(data.rooms.map((r) => r.id), ["wohnen"]);
+  assert.equal(data.outdoor.temperature, 18);
+  const listed = ctx.module.exports.analyse(hass, { areas: ["wohnen", "terrasse"] });
+  assert.deepEqual(listed.rooms.map((r) => r.id).sort(), ["terrasse", "wohnen"]);
+});
+
 test("a Wintergarten is a room, not outdoors", () => {
   const ctx = loadCard();
   const hass = mkHass({ wintergarten: { t: 24 } });
