@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## Unreleased
 
+### Added
+
+- Option `only_issues`: only list rooms whose CO₂ or humidity is outside
+  the limits, the others are summed up in one line. Also in the editor.
+
 ## 0.1.0 - 2026-11-26
 
 ### Added

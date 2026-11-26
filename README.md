@@ -66,7 +66,7 @@ A Home Assistant dashboard card that sums up the indoor climate of the whole hou
 | **Temperature** | The coldest and the warmest room, e.g. **19.6 – 22.8 °C**, with both rooms named below |
 | **Humidity** | The driest and the most humid room, on a bar that marks the comfort band (40–60 %) |
 | **Outside** | Temperature, relative and absolute humidity (g/m³) |
-| **Rooms** | Worst first. Each room shows temperature and humidity (highlighted outside the comfort band), and a CO₂ bar with value and trend arrow if it has a CO₂ sensor. |
+| **Rooms** | All rooms, or with `only_issues: true` only those that need attention. Worst first. Each room shows temperature and humidity (highlighted outside the comfort band), and a CO₂ bar with value and trend arrow if it has a CO₂ sensor. |
 | **Hints** | Only when there is something to do (see below) |
 
 CO₂ colours follow the guide values of the German Environment Agency (Umweltbundesamt):
@@ -194,6 +194,7 @@ All options are optional.
 | `outdoor` | automatic | Outdoor sensors and/or one `weather.*` entity |
 | `outdoor_area` | automatic | Use only this area's sensors as outdoor values |
 | `auto_exclude` | `true` | Skip technical temperature sensors |
+| `only_issues` | `false` | Only list rooms whose CO₂ or humidity is outside the limits; the others are summed up in one line ("4 more rooms are fine"). The temperature and humidity ranges still cover every room. |
 | `show_trend` | `true` | CO₂ trend arrows (reads the recorder history every 5 minutes) |
 | `thresholds` | see below | Change single limits |
 
@@ -254,6 +255,7 @@ thresholds:
 - **A room is missing:** it has no sensor with one of the three device classes, or the sensor is in no area. See [Troubleshooting](#a-room-or-a-sensor-is-missing).
 - **Two sensors in one room disagree** (one near the window, one on the radiator): put the bad one into `exclude_entities`. Otherwise the mean is shown.
 - **Notifications** ("air the bedroom") are a job for an automation on the CO₂ sensor, not for the card. For example, use a numeric state trigger above 1200 ppm for 10 minutes.
+- **Calmer card:** `only_issues: true` lists only the rooms where CO₂ or humidity is off, so on a good day the card is just the badge, the ranges and one line.
 - **Smaller card:** with `areas` you can make a second card for just one floor.
 
 ## Troubleshooting & FAQ
