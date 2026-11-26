@@ -12,7 +12,7 @@
 (function () {
 "use strict";
 
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 
 const METRICS = ["temperature", "humidity", "co2"];
 const DEVICE_CLASS = { temperature: "temperature", humidity: "humidity", carbon_dioxide: "co2" };

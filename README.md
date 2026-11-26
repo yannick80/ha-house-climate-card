@@ -135,7 +135,7 @@ Tap a room, a tile or the outdoor line to open that sensor's history.
 2. Copy it to `config/www/house-climate-card.js` (the `www` folder next to `configuration.yaml`; create it if it does not exist).
 3. Go to **Settings** > **Dashboards**, select the three dots, then **Resources**.
    (No **Resources** entry? Turn on **Advanced mode** in your user profile first.)
-4. Select **Add resource**, enter `/local/house-climate-card.js?v=0.1.0`, choose **JavaScript module** and select **Create**.
+4. Select **Add resource**, enter `/local/house-climate-card.js?v=0.2.0`, choose **JavaScript module** and select **Create**.
    Raise the `?v=` number after each update so browsers load the new file.
 5. Reload the browser.
 <!-- ha-marketplace:exclude-end -->
@@ -287,7 +287,7 @@ Arrows only appear when the CO₂ value changed by at least 100 ppm in the last 
 
 ### The card still shows the old version after an update
 
-Reload the browser with the cache cleared. The browser console (F12) shows the loaded version as `house-climate-card 0.1.0`.
+Reload the browser with the cache cleared. The browser console (F12) shows the loaded version as `house-climate-card 0.2.0`.
 
 ## Getting help
 
