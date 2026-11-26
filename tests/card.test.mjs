@@ -362,6 +362,28 @@ test("whole house: ranges, sorting by severity, status badge and hints", () => {
   assert.match(r.hints[1], /^Lüften entfeuchtet: außen 5,\d g\/m³, innen 13,\d g\/m³ \(Bad\)$/);
 });
 
+test("only_issues: only rooms with CO₂ or humidity outside the limits", () => {
+  const r = render(loadCard(), { only_issues: true }, mkHass(HOUSE));
+  assert.deepEqual(r.rooms, ["Kinderzimmer", "Schlafzimmer", "Bad"]);
+  assert.equal(r.root.querySelector(".rooms-rest").textContent, "1 weiterer Raum unauffällig");
+  assert.deepEqual(r.tiles, ["19,6 – 22,8 °C", "48 – 67 %"], "ranges still cover every room");
+});
+
+test("only_issues: all fine shows a single line instead of the room list", () => {
+  const r = render(loadCard(), { only_issues: true }, mkHass({ wohnen: { t: 21, h: 50, c: 600 }, bad: { t: 22, h: 55 } }));
+  assert.deepEqual(r.rooms, []);
+  assert.equal(r.root.querySelector(".rooms-label"), null);
+  assert.equal(r.root.querySelector(".rooms-rest").textContent, "2 weitere Räume unauffällig");
+  const en = render(loadCard(), { only_issues: true }, mkHass({ wohnen: { c: 600 }, bad: { h: 50 }, buero: { h: 66 } }, { lang: "en" }));
+  assert.equal(en.root.querySelector(".rooms-rest").textContent, "2 more rooms are fine");
+});
+
+test("without only_issues every room is listed and there is no rest line", () => {
+  const r = render(loadCard(), {}, mkHass(HOUSE));
+  assert.equal(r.rooms.length, 4);
+  assert.equal(r.root.querySelector(".rooms-rest"), null);
+});
+
 test("all good", () => {
   const r = render(loadCard(), {}, mkHass({ wohnen: { t: 21, h: 50, c: 600 } }));
   assert.equal(r.badge, "Alles im grünen Bereich");
@@ -480,7 +502,7 @@ test("editor works without ha-form and drops empty values", () => {
   const ed = new Editor();
   ed.setConfig({ title: "X" });
   ed.hass = mkHass({});
-  ed._onFormValue({ title: "", areas: [], outdoor: [], show_trend: true, auto_exclude: true, exclude_areas: ["bad"] });
+  ed._onFormValue({ title: "", areas: [], outdoor: [], show_trend: true, auto_exclude: true, only_issues: false, exclude_areas: ["bad"] });
   const cfg = ed.dispatched.pop().detail.config;
   assert.deepEqual({ ...cfg }, { exclude_areas: ["bad"] });
 });

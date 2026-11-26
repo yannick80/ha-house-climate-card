@@ -65,6 +65,8 @@ const STRINGS = {
     hint_no_dehumidify: "Lüften entfeuchtet gerade nicht: außen {o} g/m³, innen {i} g/m³ ({r})",
     hint_mold: "Schimmelgefahr: {r}",
     hint_dry: "Sehr trockene Luft: {r}",
+    rest_one: "1 weiterer Raum unauffällig",
+    rest_many: "{n} weitere Räume unauffällig",
     trend_up: "steigt",
     trend_down: "fällt",
     editor: {
@@ -76,6 +78,7 @@ const STRINGS = {
       auto_exclude: "Technische Temperatursensoren ausblenden",
       outdoor_area: "Außenbereich",
       show_trend: "CO₂-Trend anzeigen",
+      only_issues: "Nur auffällige Räume anzeigen",
     },
   },
   en: {
@@ -94,6 +97,8 @@ const STRINGS = {
     hint_no_dehumidify: "Airing won't dry the air right now: outside {o} g/m³, inside {i} g/m³ ({r})",
     hint_mold: "Mold risk: {r}",
     hint_dry: "Very dry air: {r}",
+    rest_one: "1 more room is fine",
+    rest_many: "{n} more rooms are fine",
     trend_up: "rising",
     trend_down: "falling",
     editor: {
@@ -105,6 +110,7 @@ const STRINGS = {
       auto_exclude: "Hide technical temperature sensors",
       outdoor_area: "Outdoor area",
       show_trend: "Show CO₂ trend",
+      only_issues: "Only show rooms that need attention",
     },
   },
 };
@@ -473,6 +479,7 @@ const STYLE = `
   .ppm { flex: 0 0 74px; text-align: right; font-size: 13px; color: var(--primary-text-color); white-space: nowrap; }
   .ppm ha-icon { --mdc-icon-size: 14px; color: var(--secondary-text-color); margin-left: 2px; vertical-align: -1px; }
   .no-co2 { flex: 1 1 auto; }
+  .rooms-rest { font-size: 12px; color: var(--secondary-text-color); padding: 4px 0 2px; }
   .hints { border-top: 1px solid var(--divider-color, rgba(127,127,127,0.25)); margin-top: 8px; padding-top: 8px; }
   .hint { display: flex; align-items: flex-start; font-size: 13px; line-height: 1.45; color: var(--secondary-text-color); padding: 2px 0; }
   .hint ha-icon { --mdc-icon-size: 16px; margin-right: 6px; flex: none; margin-top: 1px; }
@@ -686,11 +693,18 @@ class HouseClimateCard extends HTMLElement {
       line.addEventListener("click", () => this._moreInfo(o.entity));
     }
 
-    // rooms
-    const hasCo2 = data.rooms.some((r) => isFinite(r.co2));
-    card.appendChild(el("div", "rooms-label", hasCo2 ? `${t.co2} · ppm` : ""));
-    const scaleMax = Math.max(th.co2[1] * 1.25, max(data.rooms.map((r) => r.co2)));
-    for (const r of data.rooms) card.appendChild(this._room(r, t, scaleMax));
+    // rooms; with only_issues just those with CO₂ or humidity outside the limits
+    const shown = this._config.only_issues
+      ? data.rooms.filter((r) => r.level === "warn" || r.level === "bad")
+      : data.rooms;
+    if (shown.length) {
+      const hasCo2 = shown.some((r) => isFinite(r.co2));
+      card.appendChild(el("div", "rooms-label", hasCo2 ? `${t.co2} · ppm` : ""));
+      const scaleMax = Math.max(th.co2[1] * 1.25, max(shown.map((r) => r.co2)));
+      for (const r of shown) card.appendChild(this._room(r, t, scaleMax));
+    }
+    const rest = data.rooms.length - shown.length;
+    if (rest) card.appendChild(el("div", "rooms-rest", fmt(rest === 1 ? t.rest_one : t.rest_many, { n: rest })));
 
     // hints
     if (data.hints.length) {
@@ -853,6 +867,7 @@ class HouseClimateCardEditor extends HTMLElement {
         type: "grid",
         name: "",
         schema: [
+          { name: "only_issues", selector: { boolean: {} } },
           { name: "show_trend", selector: { boolean: {} } },
           { name: "auto_exclude", selector: { boolean: {} } },
         ],
@@ -882,6 +897,7 @@ class HouseClimateCardEditor extends HTMLElement {
     }
     if (config.show_trend === true) delete config.show_trend;
     if (config.auto_exclude === true) delete config.auto_exclude;
+    if (config.only_issues === false) delete config.only_issues;
     this._config = config;
     this.dispatchEvent(new CustomEvent("config-changed", { detail: { config }, bubbles: true, composed: true }));
   }
