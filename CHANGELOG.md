@@ -1,12 +1,26 @@
 # Changelog
 
+All notable changes to this project are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow
+[Semantic Versioning](https://semver.org/).
+
 ## Unreleased
 
-- First version: CO₂ per room, temperature and humidity ranges, outdoor
-  values, airing, dehumidifying, mold and dry-air hints, CO₂ trend from the
-  recorder history. Sensors found through areas, no configuration needed.
-- Technical temperature sensors are skipped automatically (heating
-  flow/return, boiler, oven, steam oven, coffee machine, fridge, …);
+### Added
+
+- House climate card (`custom:house-climate-card`): status badge,
+  temperature and humidity ranges, outdoor values with absolute humidity,
+  rooms sorted by severity with CO₂ bar and trend arrow, and hints on
+  airing, dehumidifying, mold risk and dry air.
+- Zero configuration: temperature, humidity and CO₂ sensors are found
+  through the areas of entities and devices and their `device_class`.
+  Diagnostic and hidden sensors are skipped.
+- Technical temperature sensors (heating flow and return, boiler, oven,
+  steam oven, coffee machine, fridge, chip, …) are skipped automatically;
   `auto_exclude: false` turns this off.
-- `outdoor` takes a list of sensors and/or a weather entity, for houses with
-  several outdoor spots.
+- Outdoor areas (terrace, balcony, garden, …) are recognised by name and
+  never shown as rooms; `outdoor` picks the sensors or weather entity to
+  use when there are several.
+- Options `title`, `areas`, `exclude_areas`, `exclude_entities`, `outdoor`,
+  `outdoor_area`, `show_trend` and `thresholds`; visual editor.
+- English and German.

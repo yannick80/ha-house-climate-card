@@ -233,9 +233,12 @@ function discover(hass, config) {
     const areaId = areaOfEntity(hass, ent);
     if (!areaId) continue;
 
-    const isOutdoor = outdoorArea ? areaId === outdoorArea : !only.length && isOutdoorArea(hass, areaId);
+    // Outdoor areas are never rooms, unless listed in `areas` on purpose.
+    // With `outdoor_area`, only that one gives the outdoor values.
+    const listed = only.indexOf(areaId) >= 0;
+    const isOutdoor = areaId === outdoorArea || (!listed && isOutdoorArea(hass, areaId));
     if (isOutdoor) {
-      outdoor[metric].push(id);
+      if (!outdoorArea || areaId === outdoorArea) outdoor[metric].push(id);
       continue;
     }
     if (hideAreas.has(areaId) || (only.length && only.indexOf(areaId) < 0)) continue;
