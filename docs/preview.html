@@ -1,0 +1,103 @@
+<!doctype html>
+<!-- Renders the README preview images: the real card from dist/ with mocked
+     ha-card / ha-icon and a mocked hass object. Not Home Assistant itself.
+
+     Parameters:  ?lang=en|de
+
+     Regenerate the images from the repo root:  sh docs/render-previews.sh -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; font-family: Roboto, -apple-system, "Segoe UI", sans-serif; display: flex; }
+  .theme { flex: none; padding: 16px; }
+  .theme h3 { margin: 0 4px 8px; font-size: 13px; font-weight: 400; color: var(--secondary-text-color); }
+  .theme house-climate-card { display: block; margin-bottom: 16px; }
+  .wide { width: 500px; }
+  .phone { width: 340px; }
+  .light {
+    background: #f2f2f2; --card-background-color: #fff; --ha-card-border-color: #e0e0e0;
+    --primary-text-color: #212121; --secondary-text-color: #727272; --divider-color: #e0e0e0;
+  }
+  .dark {
+    background: #111; --card-background-color: #1c1c1c; --ha-card-border-color: #2c2c2c;
+    --primary-text-color: #e1e1e1; --secondary-text-color: #9b9b9b; --divider-color: #2c2c2c;
+  }
+  .theme { --success-color: #43a047; --warning-color: #ffa600; --error-color: #db4437; }
+</style>
+</head>
+<body>
+<script type="module">
+  import * as mdi from "https://cdn.jsdelivr.net/npm/@mdi/js@7.4.47/mdi.js";
+  const toKey = (name) => "mdi" + name.replace("mdi:", "").split("-").map((p) => p[0].toUpperCase() + p.slice(1)).join("");
+
+  customElements.define("ha-card", class extends HTMLElement {
+    constructor() {
+      super();
+      this.attachShadow({ mode: "open" }).innerHTML =
+        `<style>:host{display:block;background:var(--card-background-color);border:1px solid var(--ha-card-border-color);border-radius:12px}</style><slot></slot>`;
+    }
+  });
+  customElements.define("ha-icon", class extends HTMLElement {
+    static get observedAttributes() { return ["icon"]; }
+    attributeChangedCallback() {
+      this.style.display = "inline-flex";
+      const s = "var(--mdc-icon-size, 24px)";
+      this.innerHTML = `<svg viewBox="0 0 24 24" style="width:${s};height:${s};display:block;fill:currentColor"><path d="${mdi[toKey(this.getAttribute("icon"))] || ""}"/></svg>`;
+    }
+  });
+
+  await import("../dist/house-climate-card.js");
+
+  const lang = new URLSearchParams(location.search).get("lang") === "de" ? "de" : "en";
+  const NAMES = {
+    de: { wohnen: "Wohnzimmer", kinder: "Kinderzimmer", schlafen: "Schlafzimmer", buero: "Büro", bad: "Bad", kueche: "Küche", garten: "Garten" },
+    en: { wohnen: "Living room", kinder: "Kids' room", schlafen: "Bedroom", buero: "Office", bad: "Bathroom", kueche: "Kitchen", garten: "Garden" },
+  }[lang];
+  const DC = { t: "temperature", h: "humidity", c: "carbon_dioxide" };
+
+  function hass(rooms) {
+    const h = { locale: { language: lang }, language: lang, config: { unit_system: { temperature: "°C" } },
+      areas: {}, devices: {}, entities: {}, states: {},
+      callWS: async (msg) => Object.fromEntries(msg.entity_ids.map((id) => [id,
+        [{ s: String({ "sensor.kinder_carbon_dioxide": 1300, "sensor.buero_carbon_dioxide": 1100 }[id] || h.states[id].state), lu: Date.now() / 1000 - 3600 }]])) };
+    for (const [area, vals] of Object.entries(rooms)) {
+      h.areas[area] = { area_id: area, name: NAMES[area] };
+      for (const [k, v] of Object.entries(vals)) {
+        const id = `sensor.${area}_${DC[k]}`;
+        h.devices["d_" + id] = { id: "d_" + id, area_id: area };
+        h.entities[id] = { entity_id: id, device_id: "d_" + id };
+        h.states[id] = { entity_id: id, state: String(v), attributes: { device_class: DC[k] } };
+      }
+    }
+    return h;
+  }
+
+  const HOUSE = hass({
+    kinder: { t: 21.3, h: 52, c: 1840 },
+    schlafen: { t: 19.6, h: 55, c: 1310 },
+    buero: { t: 21.9, h: 44, c: 860 },
+    wohnen: { t: 22.8, h: 48, c: 710 },
+    bad: { t: 22.1, h: 67 },
+    kueche: { t: 21.0, h: 50 },
+    garten: { t: 4.2, h: 81 },
+  });
+  const CALM = hass({ wohnen: { t: 21.4, h: 46, c: 640 }, schlafen: { t: 19.2, h: 51, c: 780 }, bad: { t: 22.0, h: 55 }, garten: { t: 12, h: 70 } });
+
+  for (const theme of ["light", "dark"]) {
+    const col = document.createElement("div");
+    col.className = `theme ${theme}`;
+    document.body.appendChild(col);
+    for (const [label, h, width] of [["section width", HOUSE, "wide"], ["phone width", CALM, "phone"]]) {
+      const head = document.createElement("h3");
+      head.textContent = label;
+      const card = document.createElement("house-climate-card");
+      card.className = width;
+      card.setConfig({});
+      card.hass = h;
+      col.append(head, card);
+    }
+  }
+</script>
+</body>
+</html>
