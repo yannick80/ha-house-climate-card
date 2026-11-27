@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## Unreleased
 
+## 0.2.1 - 2026-11-27
+
 ### Fixed
 
 - The temperature and humidity sensor chosen in an area's settings are now
