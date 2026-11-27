@@ -44,8 +44,10 @@ README.md, CHANGELOG.md, LICENSE
   keyword gets a test in "ordinary room sensors are not mistaken…" style.
 - No regex lookbehind (old Safari): exceptions use a second regex
   (`INDOOR_RE`).
-- Sensors are found via `hass.entities` + `hass.devices` areas and the
-  state's `device_class`, never by entity ID patterns. Diagnostic and hidden
+- The area's own `temperature_entity_id` / `humidity_entity_id` win over
+  discovery (only `exclude_entities` overrides them). Otherwise sensors are
+  found via `hass.entities` + `hass.devices` areas and the state's
+  `device_class`, never by entity ID patterns. Diagnostic and hidden
   entities are skipped. Zero config must keep working.
 - All logic (`discover`, `analyse`, `trendFromHistory`, `absoluteHumidity`)
   is DOM-free and exported through the test hook.

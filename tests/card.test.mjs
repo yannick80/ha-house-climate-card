@@ -222,10 +222,48 @@ test("areas restricts and orders, exclude_areas and exclude_entities hide", () =
   const ctx = loadCard();
   const hass = mkHass(HOUSE);
   const only = ctx.module.exports.discover(hass, { areas: ["bad", "wohnen"] });
-  assert.deepEqual(only.rooms.map((r) => r.id), ["bad", "wohnen"]);
+  assert.deepEqual([...only.rooms.map((r) => r.id)], ["bad", "wohnen"]);
   const hidden = ctx.module.exports.discover(hass, { exclude_areas: ["bad"], exclude_entities: ["sensor.kinder_carbon_dioxide"] });
   assert.ok(!hidden.rooms.some((r) => r.id === "bad"));
   assert.equal(hidden.rooms.find((r) => r.id === "kinder").co2.length, 0);
+});
+
+test("area settings: the temperature and humidity sensor chosen for the area win", () => {
+  const ctx = loadCard();
+  const hass = mkHass({ wohnen: { t: [21.5, 10.2, 26], h: [48, 90] } });
+  hass.areas.wohnen.temperature_entity_id = "sensor.wohnen_temperature";
+  hass.areas.wohnen.humidity_entity_id = "sensor.wohnen_humidity";
+  const data = ctx.module.exports.analyse(hass, {});
+  assert.equal(data.rooms[0].temperature, 21.5);
+  assert.equal(data.rooms[0].humidity, 48);
+  assert.deepEqual([...data.rooms[0].entities.temperature], ["sensor.wohnen_temperature"]);
+});
+
+test("area settings: a chosen sensor counts even if the filter or another area would drop it", () => {
+  const ctx = loadCard();
+  const hass = mkHass({ bad: { h: 60 }, flur: { t: 19 } });
+  // chosen temperature sensor sits on a device in another area and has a "technical" name
+  hass.areas.bad.temperature_entity_id = "sensor.flur_temperature";
+  hass.states["sensor.flur_temperature"].attributes.friendly_name = "Thermostat intern";
+  const rooms = ctx.module.exports.discover(hass, {}).rooms;
+  assert.deepEqual([...rooms.find((r) => r.id === "bad").temperature], ["sensor.flur_temperature"]);
+});
+
+test("area settings: missing or excluded chosen sensor falls back to discovery", () => {
+  const ctx = loadCard();
+  const hass = mkHass({ wohnen: { t: [20, 22] } });
+  hass.areas.wohnen.temperature_entity_id = "sensor.gone";
+  assert.equal(ctx.module.exports.analyse(hass, {}).rooms[0].temperature, 21);
+  hass.areas.wohnen.temperature_entity_id = "sensor.wohnen_temperature";
+  const ex = ctx.module.exports.analyse(hass, { exclude_entities: ["sensor.wohnen_temperature"] });
+  assert.equal(ex.rooms[0].temperature, 22);
+});
+
+test("area settings: also used for outdoor areas", () => {
+  const ctx = loadCard();
+  const hass = mkHass({ wohnen: { t: 21 }, terrasse: { t: [30, 12] } });
+  hass.areas.terrasse.temperature_entity_id = "sensor.terrasse_temperature_1";
+  assert.equal(ctx.module.exports.analyse(hass, {}).outdoor.temperature, 12);
 });
 
 test("several sensors in a room: mean temperature, highest CO₂", () => {
@@ -293,7 +331,7 @@ test("outdoor_area: the other outdoor areas are still not rooms", () => {
   const ctx = loadCard();
   const hass = mkHass({ wohnen: { t: 21 }, terrasse: { t: 18 }, balkon_nord: { t: 10 } });
   const data = ctx.module.exports.analyse(hass, { outdoor_area: "balkon_nord" });
-  assert.deepEqual(data.rooms.map((r) => r.id), ["wohnen"]);
+  assert.deepEqual([...data.rooms.map((r) => r.id)], ["wohnen"]);
   assert.equal(data.outdoor.temperature, 10);
 });
 
@@ -301,10 +339,10 @@ test("areas list: outdoor areas still give outdoor values unless listed", () => 
   const ctx = loadCard();
   const hass = mkHass({ wohnen: { t: 21 }, bad: { t: 23 }, terrasse: { t: 18 } });
   const data = ctx.module.exports.analyse(hass, { areas: ["wohnen"] });
-  assert.deepEqual(data.rooms.map((r) => r.id), ["wohnen"]);
+  assert.deepEqual([...data.rooms.map((r) => r.id)], ["wohnen"]);
   assert.equal(data.outdoor.temperature, 18);
   const listed = ctx.module.exports.analyse(hass, { areas: ["wohnen", "terrasse"] });
-  assert.deepEqual(listed.rooms.map((r) => r.id).sort(), ["terrasse", "wohnen"]);
+  assert.deepEqual([...listed.rooms.map((r) => r.id)].sort(), ["terrasse", "wohnen"]);
 });
 
 test("a Wintergarten is a room, not outdoors", () => {

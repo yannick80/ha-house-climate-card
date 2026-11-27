@@ -219,13 +219,21 @@ function isOutdoorArea(hass, areaId) {
 
 // Groups all usable climate sensors by area. Returns
 // { rooms: [{ id, name, temperature: [ids], humidity: [ids], co2: [ids] }], outdoor: {...} }
+//
+// The temperature and humidity sensor chosen in the area settings
+// (temperature_entity_id / humidity_entity_id, HA 2024.11+) win; only areas
+// without that choice fall back to every matching sensor in the area.
 function discover(hass, config) {
   const only = list(config.areas);
   const hideAreas = new Set(list(config.exclude_areas));
   const hideEnts = new Set(list(config.exclude_entities));
   const outdoorArea = config.outdoor_area;
-  const byArea = {};
-  const outdoor = { temperature: [], humidity: [], co2: [] };
+  const areas = hass.areas || {};
+  const found = {};
+  const slot = (areaId) => {
+    if (!found[areaId]) found[areaId] = { temperature: [], humidity: [], co2: [] };
+    return found[areaId];
+  };
 
   const ents = hass.entities || {};
   for (const id of Object.keys(ents)) {
@@ -238,24 +246,37 @@ function discover(hass, config) {
     if (metric === "temperature" && config.auto_exclude !== false && technicalReason(hass, id, ent)) continue;
     const areaId = areaOfEntity(hass, ent);
     if (!areaId) continue;
+    slot(areaId)[metric].push(id);
+  }
 
+  for (const areaId of Object.keys(areas)) {
+    const area = areas[areaId];
+    const chosen = { temperature: area && area.temperature_entity_id, humidity: area && area.humidity_entity_id };
+    for (const metric of Object.keys(chosen)) {
+      const id = chosen[metric];
+      if (id && !hideEnts.has(id) && hass.states && hass.states[id]) slot(areaId)[metric] = [id];
+    }
+  }
+
+  const rooms = [];
+  const outdoor = { temperature: [], humidity: [], co2: [] };
+  for (const areaId of Object.keys(found)) {
+    const f = found[areaId];
     // Outdoor areas are never rooms, unless listed in `areas` on purpose.
     // With `outdoor_area`, only that one gives the outdoor values.
     const listed = only.indexOf(areaId) >= 0;
-    const isOutdoor = areaId === outdoorArea || (!listed && isOutdoorArea(hass, areaId));
-    if (isOutdoor) {
-      if (!outdoorArea || areaId === outdoorArea) outdoor[metric].push(id);
+    if (areaId === outdoorArea || (!listed && isOutdoorArea(hass, areaId))) {
+      if (!outdoorArea || areaId === outdoorArea) {
+        for (const m of METRICS) outdoor[m] = outdoor[m].concat(f[m]);
+      }
       continue;
     }
-    if (hideAreas.has(areaId) || (only.length && only.indexOf(areaId) < 0)) continue;
-    if (!byArea[areaId]) {
-      const area = hass.areas && hass.areas[areaId];
-      byArea[areaId] = { id: areaId, name: (area && area.name) || areaId, temperature: [], humidity: [], co2: [] };
-    }
-    byArea[areaId][metric].push(id);
+    if (hideAreas.has(areaId) || (only.length && !listed)) continue;
+    if (!f.temperature.length && !f.humidity.length && !f.co2.length) continue;
+    const area = areas[areaId];
+    rooms.push({ id: areaId, name: (area && area.name) || areaId, temperature: f.temperature, humidity: f.humidity, co2: f.co2 });
   }
 
-  let rooms = Object.keys(byArea).map((k) => byArea[k]);
   if (only.length) rooms.sort((a, b) => only.indexOf(a.id) - only.indexOf(b.id));
   return { rooms, outdoor };
 }

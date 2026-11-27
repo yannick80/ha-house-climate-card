@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## Unreleased
 
+### Fixed
+
+- The temperature and humidity sensor chosen in an area's settings are now
+  used for that area. Before, the card averaged every matching sensor in the
+  area, so a room could show a value no sensor reported.
+
 ## 0.2.0 - 2026-11-26
 
 ### Added
