@@ -154,13 +154,15 @@ type: custom:house-climate-card
 
 ## How sensors are found
 
-The card uses every `sensor.*` entity that
+**The sensors chosen in the area settings come first.** If you picked a temperature or humidity sensor for an area (**Settings** > **Areas, labels & zones** > edit the area), the card uses exactly that one for the area, and nothing else for that value. It is used even if it sits on a device in another area or has a name the technical filter would catch. Only `exclude_entities` overrides it. CO₂ has no such setting in Home Assistant, so it is always found as described below.
+
+For areas without that choice, and for CO₂, the card uses every `sensor.*` entity that
 
 - has the `device_class` `temperature`, `humidity` or `carbon_dioxide`,
 - is in an area: the entity's own area, otherwise its device's area,
 - is not a diagnostic sensor (so the chip temperature of a smart plug doesn't count), and is not hidden or disabled.
 
-**Several sensors in one room:** the card shows their mean temperature and humidity, and the highest CO₂ value.
+**Several sensors in one room:** without a sensor chosen in the area settings, the card shows their mean temperature and humidity. For CO₂ it always shows the highest value. If the mean looks wrong, choose the right sensor in the area settings.
 
 **Technical temperature sensors** are skipped, because they don't measure room air:
 
@@ -253,7 +255,7 @@ thresholds:
 
 - **Area IDs** are shown in the URL when you open an area under **Settings** > **Areas, labels & zones**. In the visual editor, you simply pick the areas.
 - **A room is missing:** it has no sensor with one of the three device classes, or the sensor is in no area. See [Troubleshooting](#a-room-or-a-sensor-is-missing).
-- **Two sensors in one room disagree** (one near the window, one on the radiator): put the bad one into `exclude_entities`. Otherwise the mean is shown.
+- **Two sensors in one room disagree** (one near the window, one on the radiator): choose the right one in the area settings. The card then uses only that one, and so does Home Assistant's own area card.
 - **Notifications** ("air the bedroom") are a job for an automation on the CO₂ sensor, not for the card. For example, use a numeric state trigger above 1200 ppm for 10 minutes.
 - **Calmer card:** `only_issues: true` lists only the rooms where CO₂ or humidity is off, so on a good day the card is just the badge, the ranges and one line.
 - **Smaller card:** with `areas` you can make a second card for just one floor.
@@ -268,6 +270,10 @@ After a manual install, check the resource under **Settings** > **Dashboards** >
 ### "No climate sensors found in any area"
 
 None of your temperature, humidity or CO₂ sensors is in an area. Assign the devices to areas, or check that the sensors have a `device_class` under **Developer tools** > **States**.
+
+### A temperature or humidity doesn't match any sensor
+
+The room has several matching sensors and no sensor chosen in the area settings, so the card shows their mean. Choose the sensor in the area settings, or put the wrong ones into `exclude_entities`.
 
 ### A room or a sensor is missing
 
